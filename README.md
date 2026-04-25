@@ -174,6 +174,4 @@ Thumbs.db
 
 ## License
 
-MIT License 推奨です。
-
-実際にオープンソースとして公開する場合は、リポジトリに `LICENSE` ファイルを追加してください。
+MIT License です。詳細は [LICENSE](LICENSE) を参照してください。

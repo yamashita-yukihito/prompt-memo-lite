@@ -1,0 +1,9 @@
+*
+!memo.pyw
+!memo_search.pyw
+!README.md
+!LICENSE
+!.gitignore
+!.github/
+!.github/workflows/
+!.github/workflows/*.yml
