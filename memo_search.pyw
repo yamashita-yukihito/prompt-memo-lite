@@ -191,7 +191,7 @@ def open_with_default_app(path: Path) -> None:
 
 
 class MemoSearchApp:
-    def __init__(self, root: tk.Tk, *, initial_folder: Path, initial_query: str = "") -> None:
+    def __init__(self, root: tk.Tk, *, initial_folder: Path | None, initial_query: str = "") -> None:
         self.root = root
         self.root.title(APP_TITLE)
         self.root.minsize(900, 620)
@@ -218,11 +218,14 @@ class MemoSearchApp:
             self.root.geometry("1100x760")
 
         saved_folder = self.settings.get("folder")
-        if initial_folder:
+        if initial_folder is not None:
+            # --folder が明示されたときだけ、その値を最優先する。
             folder_text = str(initial_folder)
         elif isinstance(saved_folder, str) and saved_folder:
+            # 単体起動時は、前回終了時に保存した検索対象フォルダを復元する。
             folder_text = saved_folder
         else:
+            # 初回起動など、保存済みフォルダがない場合のフォールバック。
             folder_text = str(BASE_DIR)
 
         saved_extensions = self.settings.get("extensions")
@@ -619,7 +622,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args(sys.argv[1:])
-    initial_folder = Path(args.folder).expanduser() if args.folder else BASE_DIR
+    initial_folder = Path(args.folder).expanduser() if args.folder else None
 
     enable_high_dpi_mode()
     root = tk.Tk()
