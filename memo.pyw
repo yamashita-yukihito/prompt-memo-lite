@@ -11,6 +11,7 @@ from __future__ import annotations
 # - 選択文字列に Ctrl+Up / Ctrl+Down で重み付け
 # - 選択文字列に Ctrl+[ で {text|} 化
 # - Ctrl+F で検索（Enter=次, Shift+Enter=前）
+# - Ctrl+Shift+F で memo_search.pyw を起動してフォルダ横断検索
 # - Ctrl+クリックでカンマ区切りプロンプトを自動選択
 # - Ctrl+1..9 で ctrl_1.txt..ctrl_9.txt を挿入
 # - Ctrl+マウスホイールでフォントサイズ変更
@@ -21,6 +22,7 @@ import ctypes
 import difflib
 import json
 import re
+import subprocess
 import sys
 from datetime import datetime
 import tkinter as tk
@@ -31,6 +33,7 @@ import tkinter.font as tkfont
 APP_TITLE = "Minimal Memo"
 BASE_DIR = Path(__file__).resolve().parent
 SETTINGS_FILE = BASE_DIR / "settings.json"
+SEARCH_APP_FILE = BASE_DIR / "memo_search.pyw"
 MEMO_FILES = [
     BASE_DIR / "positive.txt",
     BASE_DIR / "negative.txt",
@@ -891,6 +894,8 @@ class MemoApp:
         editor.bind("<Control-Down>", self._on_ctrl_down)
         editor.bind("<Control-bracketleft>", self._on_ctrl_bracketleft)
         editor.bind("<Control-f>", self._on_ctrl_f)
+        editor.bind("<Control-Shift-F>", self._on_ctrl_shift_f)
+        editor.bind("<Control-Shift-f>", self._on_ctrl_shift_f)
         editor.bind("<Control-Left>", self._on_ctrl_left)
         editor.bind("<Control-Right>", self._on_ctrl_right)
         editor.bind("<Left>", self._on_left_key)
@@ -921,6 +926,8 @@ class MemoApp:
         self.root.bind("<Control-Down>", self._on_ctrl_down)
         self.root.bind("<Control-bracketleft>", self._on_ctrl_bracketleft)
         self.root.bind("<Control-f>", self._on_ctrl_f)
+        self.root.bind("<Control-Shift-F>", self._on_ctrl_shift_f)
+        self.root.bind("<Control-Shift-f>", self._on_ctrl_shift_f)
         self.root.bind("<Control-Left>", self._on_ctrl_left)
         self.root.bind("<Control-Right>", self._on_ctrl_right)
         self.root.bind("<Control-MouseWheel>", self._on_ctrl_mousewheel)
@@ -1444,6 +1451,39 @@ class MemoApp:
             self.search_dialog = SearchDialog(self)
         else:
             self.search_dialog.focus_entry(select_all=True)
+        return "break"
+
+    def _on_ctrl_shift_f(self, _event: object | None = None) -> str:
+        """外部の全文検索アプリを起動する。
+
+        本体側は壊れやすいキー操作・選択処理を多く持つため、
+        フォルダ横断検索は memo_search.pyw に分離する。
+        選択中の文字列があれば、検索語として検索アプリへ渡す。
+        """
+        if not SEARCH_APP_FILE.exists():
+            messagebox.showerror(
+                "検索アプリが見つかりません",
+                f"{SEARCH_APP_FILE.name} が同じフォルダにありません。\n\n{SEARCH_APP_FILE}",
+            )
+            return "break"
+
+        query = self.get_selected_text().strip()
+
+        python_exe = Path(sys.executable)
+        if sys.platform == "win32" and python_exe.name.lower() == "python.exe":
+            pythonw = python_exe.with_name("pythonw.exe")
+            if pythonw.exists():
+                python_exe = pythonw
+
+        args = [str(python_exe), str(SEARCH_APP_FILE), "--folder", str(BASE_DIR)]
+        if query:
+            args.extend(["--query", query])
+
+        try:
+            creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+            subprocess.Popen(args, cwd=str(BASE_DIR), creationflags=creationflags)
+        except Exception as exc:
+            messagebox.showerror("検索アプリを起動できません", str(exc))
         return "break"
 
     def _on_ctrl_left(self, _event: object | None = None) -> str:
